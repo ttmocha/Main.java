@@ -1,15 +1,79 @@
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-public class Main {
+import java.util.ArrayList;
+import java.util.HashMap;
+import obstacles.*;
+import common.*;
+class Main {
     public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
+        HashMap<String, ArrayList<String>> parsedArgs = parseArgs(args);
+        ArrayList<Obstacle> obstacles = parseObstacles(parsedArgs);
+        Map map = new Map(obstacles);
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
-        }
+        // Parse the start and target locations
+        String startArg = stripParentheses(parsedArgs.get("-start").get(0));
+        String targetArg = stripParentheses(parsedArgs.get("-target").get(0));
+        Location start = Location.parse(startArg);
+        Location target = Location.parse(targetArg);
+
+        // Show the map
+        System.out.println(map.getSolvedMap(start, target));
     }
+
+
+    /**
+     * Parses the command line arguments into a HashMap of arguments
+     * @param args The command line arguments
+     * @return A HashMap of arguments
+     */
+    private static HashMap<String, ArrayList<String>> parseArgs(String[] args) {
+        HashMap<String, ArrayList<String>> parsedArgs = new HashMap<>();
+        ArrayList<String> argValues = null;
+        for (String arg : args) {
+            if (arg.startsWith("-")) {
+                argValues = new ArrayList<>();
+                parsedArgs.put(arg, argValues);
+                continue;
+            }
+            if (argValues != null) {
+                argValues.add(arg);
+            }
+        }
+        return parsedArgs;
+    }
+
+    /**
+     * Strips the parentheses from the argument
+     * @param arg The argument to strip
+     * @return The argument without parentheses
+     */
+    private static String stripParentheses(String arg) {
+        return arg.substring(1, arg.length() - 1);
+    }
+
+    /**
+     * Parses the obstacles from the command line arguments
+     * @param parsedArgs The parsed arguments
+     */
+    public static ArrayList<Obstacle> parseObstacles(HashMap<String, ArrayList<String>> parsedArgs) {
+        ArrayList<Obstacle> obstacles = new ArrayList<>();
+        for (ObstacleType type : ObstacleType.values()) {
+            String key = "-" + type.getArgumentName();
+            ArrayList<String> args = parsedArgs.get(key);
+            if (args == null) {
+                continue;
+            }
+            for (String arg : args) {
+                // Remove the parentheses from the argument
+                String cleanedArg = stripParentheses(arg);
+                Obstacle obstacle = switch (type) {
+                    case GUARD -> Guard.parse(cleanedArg);
+                    case FENCE -> Fence.parse(cleanedArg);
+                    case SENSOR -> Sensor.parse(cleanedArg);
+                    case CAMERA -> Camera.parse(cleanedArg);
+                };
+                obstacles.add(obstacle);
+            }
+        }
+        return obstacles;
+    }
+
 }
